@@ -15,59 +15,68 @@ const App = () => {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [emptyNotify, setEmptyNotify] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetImage, setTargetImage] = useState(null);
 
-  useEffect(() => {
-    searchImages();
-  }, [page, searchQuery]);
-
   // когда жмем на кнопку поиск это срабатует
-  onSubmit = value => {
+  const onSubmit = value => {
     setImages([]);
     setSearchQuery(value);
     setPage(1);
   };
 
-  const searchImages = async () => {
-    setIsLoading(true);
+  const onButtonMoreClick = () => {
+    setPage(page + 1);
+  };
 
-    try {
-      const data = await fetchImage(searchQuery, page);
-
-      const { hits, totalHits } = data;
-
-      const filteredHits = hits.map(
-        ({ id, tags, webformatURL, largeImageURL }) => ({
-          id,
-          tags,
-          webformatURL,
-          largeImageURL,
-        })
-      );
-
-      if (page === 1) {
-        this.setState({
-          totalHits: totalHits,
-          images: filteredHits,
-        });
-      } else {
-        this.setState(prevState => ({
-          images: [...prevState.images, ...filteredHits],
-        }));
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
-    } catch (error) {
-      this.setState({ error });
-      console.log(error);
-    } finally {
-      this.setState({ isLoading: false });
+  const toggleModal = ({ status, src, alt }) => {
+    if (status) {
+      setTargetImage({ src, alt });
+      setIsModalOpen(true);
+    } else {
+      setTargetImage(null);
+      setIsModalOpen(false);
     }
   };
+
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
+    const searchImages = async () => {
+      setIsLoading(true);
+
+      try {
+        const data = await fetchImage(searchQuery, page);
+
+        const { hits, totalHits } = data;
+
+        const filteredHits = hits.map(
+          ({ id, tags, webformatURL, largeImageURL }) => ({
+            id,
+            tags,
+            webformatURL,
+            largeImageURL,
+          })
+        );
+
+        if (page === 1) {
+          setTotalHits(totalHits);
+          setImages(filteredHits);
+        } else {
+          setImages(prevState => [...images, ...filteredHits]);
+        }
+      } catch (error) {
+        setError(error);
+        console.log(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    searchImages();
+  }, [page, searchQuery]);
 
   return (
     <div className={css.App}>
@@ -86,7 +95,7 @@ const App = () => {
 
       {isLoading && <Loader />}
 
-      {emptyNotify && <Notify message="Nothing. Empty from your query." />}
+      {totalHits === 0 && <Notify message="Nothing. Empty from your query." />}
 
       {isModalOpen && (
         <Modal
