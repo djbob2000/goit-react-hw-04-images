@@ -1,21 +1,21 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import css from './Modal.module.css';
 
 const Modal = ({ toggleModal, src, alt }) => {
-  const handleToggleModalOnEsc = useCallback(evt => {
-    if (evt.key === 'Escape' || evt.target === evt.currentTarget) {
-      toggleModal({ status: false });
-    }
-  });
-
   useEffect(() => {
     window.addEventListener('keydown', handleToggleModalOnEsc);
 
     return () => {
       window.removeEventListener('keydown', handleToggleModalOnEsc);
     };
-  }, [handleToggleModalOnEsc]);
+  });
+
+  const handleToggleModalOnEsc = evt => {
+    if (evt.key === 'Escape' || evt.target === evt.currentTarget) {
+      toggleModal({ status: false });
+    }
+  };
 
   return (
     <div className={css.Overlay} onClick={handleToggleModalOnEsc}>
