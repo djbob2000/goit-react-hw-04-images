@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Loader from './Loader/Loader';
 import fetchImage from '../services/api';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
-import Notify from './Notify/Notify';
 import Modal from './Modal/Modal';
 import Button from './Button/Button';
 import css from './App.module.css';
@@ -14,13 +15,14 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetImage, setTargetImage] = useState(null);
 
   // когда жмем на кнопку поиск это срабатует
   const onSubmit = value => {
+    if (!value) {
+      toast.error('Please enter word for search');
+    }
     setImages([]);
     setSearchQuery(value);
     setPage(1);
@@ -44,14 +46,12 @@ const App = () => {
     if (!searchQuery) {
       return;
     }
-    const searchImages = async () => {
+    const searchImages = async ({ searchQuery, page }) => {
       setIsLoading(true);
 
       try {
         const data = await fetchImage(searchQuery, page);
-
         const { hits, totalHits } = data;
-
         const filteredHits = hits.map(
           ({ id, tags, webformatURL, largeImageURL }) => ({
             id,
@@ -62,28 +62,26 @@ const App = () => {
         );
 
         if (page === 1) {
-          setTotalHits(totalHits);
+          totalHits
+            ? setTotalHits(totalHits)
+            : toast.error('No images find from your request');
           setImages(filteredHits);
         } else {
-          setImages(prevState => [...images, ...filteredHits]);
+          setImages(prevState => [...prevState, ...filteredHits]);
         }
       } catch (error) {
-        setError(error);
         console.log(error);
+        toast.error('error');
       } finally {
         setIsLoading(false);
       }
     };
-
-    searchImages();
-  }, [page, searchQuery]);
+    searchImages({ searchQuery, page });
+  }, [searchQuery, page]);
 
   return (
     <div className={css.App}>
       <Searchbar onSubmit={onSubmit} />
-      {error && (
-        <Notify message={`Huston, we have a problem: ${error.message}`} />
-      )}
 
       {images.length > 0 && (
         <ImageGallery images={images} toggleModal={toggleModal} />
@@ -95,8 +93,6 @@ const App = () => {
 
       {isLoading && <Loader />}
 
-      {totalHits === 0 && <Notify message="Nothing. Empty from your query." />}
-
       {isModalOpen && (
         <Modal
           src={targetImage.src}
@@ -104,6 +100,19 @@ const App = () => {
           toggleModal={toggleModal}
         />
       )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 };
